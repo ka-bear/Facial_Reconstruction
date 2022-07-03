@@ -65,8 +65,6 @@ def main():
 
             pbar.set_description(f"Batch: {batch} Training loss: {train_loss / (batch + 1)}")
 
-            if batch == 100:
-                break
         metrics["train"].append(train_loss)
 
         optimizer.zero_grad()
