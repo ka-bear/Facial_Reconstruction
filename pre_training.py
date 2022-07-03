@@ -25,7 +25,7 @@ def main():
     train_ds = CelebADataset(celeba_root, transform, 0)
     valid_ds = CelebADataset(celeba_root, None, 1)
     train_loader = torch.utils.data.DataLoader(train_ds, shuffle=True, batch_size=64, num_workers=4)
-    valid_loader = torch.utils.data.DataLoader(valid_ds, shuffle=True, batch_size=32, num_workers=4)
+    valid_loader = torch.utils.data.DataLoader(valid_ds, shuffle=False, batch_size=32, num_workers=4)
 
     model = MobilenetV3(num_classes=40, classifier_activation=nn.Sigmoid).to(device)
     loss_fn = FocalLoss().to(device)
