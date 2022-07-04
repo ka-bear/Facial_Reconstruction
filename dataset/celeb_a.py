@@ -8,7 +8,8 @@ class CelebADataset(Dataset):
     def __init__(self, celeba_root, transform=None, train_eval_test=0):
         partition_df = pd.read_csv(celeba_root + "list_eval_partition.csv")
         attr_df = pd.read_csv(celeba_root + "list_attr_celeba.csv")
-        self.attr = attr_df[partition_df["partition"] == train_eval_test].iloc[:, 1:42].to_numpy().astype("float32")
+        attr_df = attr_df[partition_df["partition"] == train_eval_test]
+        self.attr = attr_df.iloc[:, 1:42].to_numpy().astype("float32")
         self.image_ids = attr_df["image_id"].to_numpy()
         self.transform = transform
         self.celeba_root = celeba_root
