@@ -6,6 +6,8 @@ from model.mobilenet import MobilenetV3
 
 from tqdm import tqdm
 
+import matplotlib.pyplot as plt
+
 import torch
 from torch import nn
 import torchvision.transforms as transforms
@@ -21,11 +23,12 @@ def main():
                                     transforms.RandomHorizontalFlip(),
                                     transforms.RandomAffine(degrees=30, translate=(0.1, 0.1), scale=(0.9, 1.1),
                                                             shear=15,
-                                                            interpolation=transforms.InterpolationMode.BILINEAR)])
+                                                            interpolation=transforms.InterpolationMode.BILINEAR,
+                                                            fill=0.5)])
     train_ds = CelebADataset(celeba_root, transform, 0)
     valid_ds = CelebADataset(celeba_root, transforms.Normalize((127.0, 127.0, 127.0), (127.0, 127.0, 127.0)), 1)
     train_loader = torch.utils.data.DataLoader(train_ds, shuffle=True, batch_size=64, num_workers=4)
-    valid_loader = torch.utils.data.DataLoader(valid_ds, shuffle=False, batch_size=32, num_workers=4)
+    valid_loader = torch.utils.data.DataLoader(valid_ds, shuffle=False, batch_size=64, num_workers=4)
 
     model = MobilenetV3(num_classes=40, classifier_activation=nn.Sigmoid).to(device)
     loss_fn = FocalLoss().to(device)
@@ -45,8 +48,6 @@ def main():
     else:
         epoch = 0
         metrics = {"train": [], "val": []}
-
-    model.train()
 
     for i in range(10):
         train_loss = 0
