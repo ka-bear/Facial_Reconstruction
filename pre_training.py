@@ -23,7 +23,7 @@ def main():
                                                             shear=15,
                                                             interpolation=transforms.InterpolationMode.BILINEAR)])
     train_ds = CelebADataset(celeba_root, transform, 0)
-    valid_ds = CelebADataset(celeba_root, None, 1)
+    valid_ds = CelebADataset(celeba_root, transforms.Normalize((127.0, 127.0, 127.0), (127.0, 127.0, 127.0)), 1)
     train_loader = torch.utils.data.DataLoader(train_ds, shuffle=True, batch_size=64, num_workers=4)
     valid_loader = torch.utils.data.DataLoader(valid_ds, shuffle=False, batch_size=32, num_workers=4)
 
@@ -48,7 +48,7 @@ def main():
 
     model.train()
 
-    for i in range(1):
+    for i in range(10):
         train_loss = 0
         model.train()
         for batch, data in enumerate(pbar := tqdm(train_loader)):
@@ -83,6 +83,7 @@ def main():
         metrics["val"].append(test_loss)
 
         epoch += 1
+        lr.step(test_loss)
         torch.save({
             "model": model.state_dict(),
             "optimizer": optimizer.state_dict(),
@@ -90,7 +91,8 @@ def main():
             "metrics": metrics,
             "epoch": epoch
         }, ckpt_path)
-        lr.step(test_loss)
+
+        print(f"Epoch {epoch} done")
 
 
 if __name__ == "__main__":
