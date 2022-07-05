@@ -27,7 +27,7 @@ class InvertedResBlock(nn.Module):
         self.depthwise = nn.Conv2d(in_channels=depth(in_channels * expansion), stride=stride,
                                    out_channels=depth(in_channels * expansion), kernel_size=kernel_size,
                                    groups=depth(in_channels * expansion), padding=(kernel_size - 1) // 2, bias=False)
-        self.depthwise_bn = nn.BatchNorm2d(num_features=depth(in_channels * expansion), eps=1e-3, momentum=1e-2)
+        self.depthwise_bn = nn.BatchNorm2d(num_features=depth(in_channels * expansion), eps=1e-3, momentum=1e-3)
         self.depthwise_activation = activation()
 
         if se_ratio:
@@ -37,7 +37,7 @@ class InvertedResBlock(nn.Module):
 
         self.project = nn.Conv2d(in_channels=depth(in_channels * expansion), out_channels=out_channels,
                                  kernel_size=1, padding='same', bias=False)
-        self.project_bn = nn.BatchNorm2d(num_features=out_channels, eps=1e-3, momentum=1e-2)
+        self.project_bn = nn.BatchNorm2d(num_features=out_channels, eps=1e-3, momentum=1e-3)
         self.project_activation = activation()
 
         self.expansion = expansion
@@ -74,7 +74,7 @@ def MobilenetV3(arch='large', in_channels=3, activation=nn.Hardswish, kernel=5, 
 
     layers = [nn.Conv2d(in_channels=in_channels, out_channels=16,
                         kernel_size=3, stride=2, padding=1, bias=False),
-              nn.BatchNorm2d(num_features=16, eps=1e-3, momentum=1e-2), activation()]
+              nn.BatchNorm2d(num_features=16, eps=1e-3, momentum=1e-3), activation()]
 
     if arch == 'large':
         stack_cfg = [
@@ -119,7 +119,7 @@ def MobilenetV3(arch='large', in_channels=3, activation=nn.Hardswish, kernel=5, 
     if include_top:
         layers.append(nn.Conv2d(in_channels=out_ch, out_channels=out_ch * 6, kernel_size=1, padding='same',
                                 bias=False))
-        layers.append(nn.BatchNorm2d(num_features=out_ch * 6, eps=1e-3, momentum=1e-2))
+        layers.append(nn.BatchNorm2d(num_features=out_ch * 6, eps=1e-3, momentum=1e-3))
         layers.append(activation())
 
         layers.append(nn.AdaptiveAvgPool2d(1))

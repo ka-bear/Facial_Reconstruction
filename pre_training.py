@@ -1,17 +1,15 @@
 import os
 
+import torch
+import torchvision.transforms as transforms
+from kornia import augmentation
+from torch import nn
+from torch.utils.data import DataLoader
+from tqdm import tqdm
+
 from dataset.celeb_a import CelebADataset
 from model.losses.focal_loss import FocalLoss
 from model.mobilenet import MobilenetV3
-
-from tqdm import tqdm
-
-import matplotlib.pyplot as plt
-
-import torch
-from torch import nn
-import torchvision.transforms as transforms
-from torch.utils.data import DataLoader
 
 celeba_root = "E:\\pycharmgoesbrr\\Project-Vitello-Tonnato\\data\\celeba\\img_celeba\\"
 
@@ -19,14 +17,9 @@ celeba_root = "E:\\pycharmgoesbrr\\Project-Vitello-Tonnato\\data\\celeba\\img_ce
 def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    transform = transforms.Compose([transforms.Normalize((127.0, 127.0, 127.0), (127.0, 127.0, 127.0)),
-                                    transforms.RandomHorizontalFlip(),
-                                    transforms.RandomAffine(degrees=30, translate=(0.1, 0.1), scale=(0.9, 1.1),
-                                                            shear=15,
-                                                            interpolation=transforms.InterpolationMode.BILINEAR,
-                                                            fill=0.5)])
+    transform = transforms.Normalize((127.0, 127.0, 127.0), (127.0, 127.0, 127.0))
     train_ds = CelebADataset(celeba_root, transform, 0)
-    valid_ds = CelebADataset(celeba_root, transforms.Normalize((127.0, 127.0, 127.0), (127.0, 127.0, 127.0)), 1)
+    valid_ds = CelebADataset(celeba_root, transform, 1)
     train_loader = torch.utils.data.DataLoader(train_ds, shuffle=True, batch_size=64, num_workers=4)
     valid_loader = torch.utils.data.DataLoader(valid_ds, shuffle=False, batch_size=64, num_workers=4)
 
@@ -34,6 +27,10 @@ def main():
     loss_fn = FocalLoss().to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
     lr = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=2)
+
+    aug = nn.Sequential(augmentation.RandomHorizontalFlip(),
+                        augmentation.RandomAffine(degrees=(-20, 20), scale=(0.8, 1.2), translate=(0.1, 0.1), shear=0.15,
+                                                  padding_mode="border")).to(device)
 
     ckpt_path = "model.pt"
 
@@ -53,8 +50,7 @@ def main():
         train_loss = 0
         model.train()
         for batch, data in enumerate(pbar := tqdm(train_loader)):
-            inputs, targets = data[0].requires_grad_().to(device), data[1].to(device)
-
+            inputs, targets = aug(data[0].requires_grad_().to(device)), data[1].to(device)
             optimizer.zero_grad()
 
             outputs = model(inputs)
