@@ -75,13 +75,6 @@ def main():
     config = get_config()
     rfg = RandomGenerator(config, np.load(texture_file)).to(device)
 
-    for i in range(5):
-        shape_params, vertices, diff, spec = rfg()
-        print(rfg.shape_params)
-
-    cv2.imwrite("tmp/diff.png", (diff.cpu().numpy()).astype('uint8').reshape((8, 512, 512, 3))[0])
-    cv2.imwrite("tmp/spec.png", (spec.cpu().numpy()).astype('uint8').reshape((8, 512, 512, 3))[0])
-
     launch_args = dict(
         scene=Path(__file__).parent / "faces.blend",
         script=Path(__file__).parent / "faces.blend.py",
@@ -104,6 +97,7 @@ def main():
             update_simulations(remotes, shape_params, vertices, diff)
 
             image = next(sim_iter)
+            # todo save image and shape params
 
 
     # flame_layer = FLAME(config).to(device)
