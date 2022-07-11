@@ -8,3 +8,4 @@ smplx~=0.1.28
 matplotlib~=3.5.2
 pytorch~=1.11
 kornia~=0.6.5
+opencv-python~=4.6.0.66
