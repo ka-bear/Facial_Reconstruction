@@ -12,8 +12,8 @@ class FlameDataset(Dataset):
 
     def __getitem__(self, idx):
         if (self.test):
-            filename = f"render_{40 + idx // 8}_{idx % 8}.png"
-            filename1 = f"shape_{40 + idx // 8}.npy"
+            filename = f"render_{4000 + idx // 8}_{idx % 8}.png"
+            filename1 = f"shape_{4000 + idx // 8}.npy"
 
             image = read_image(self.flame_root + "/render//" + filename, ImageReadMode.RGB)
             image = image.type(torch.FloatTensor)
