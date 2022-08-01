@@ -87,8 +87,6 @@ def main():
                 outputs = model(inputs)
                 loss = loss_fn(outputs, targets)
 
-                print(outputs[:, 0], targets[:, 0])
-
             test_loss += loss.detach()
 
             pbar.set_description(f"Valid loss: {test_loss / (batch + 1)}")
