@@ -57,24 +57,24 @@ def main():
         metrics = {"train": [], "val": []}
 
     for i in range(10):
-        # train_loss = 0
-        # model.train()
-        #
-        # pbar = tqdm(train_loader)
-        # for batch, data in enumerate(pbar):
-        #     inputs, targets = aug(data[0].requires_grad_().to(device)), data[1].to(device)
-        #     optimizer.zero_grad()
-        #
-        #     outputs = model(inputs)
-        #     loss = loss_fn(outputs, targets)
-        #     loss.backward()
-        #     optimizer.step()
-        #
-        #     train_loss += loss.detach()
-        #
-        #     pbar.set_description(f"Batch: {batch} Training loss: {train_loss / (batch + 1)}")
-        #
-        # metrics["train"].append(train_loss)
+        train_loss = 0
+        model.train()
+
+        pbar = tqdm(train_loader)
+        for batch, data in enumerate(pbar):
+            inputs, targets = aug(data[0].requires_grad_().to(device)), data[1].to(device)
+            optimizer.zero_grad()
+
+            outputs = model(inputs)
+            loss = loss_fn(outputs, targets)
+            loss.backward()
+            optimizer.step()
+
+            train_loss += loss.detach()
+
+            pbar.set_description(f"Batch: {batch} Training loss: {train_loss / (batch + 1)}")
+
+        metrics["train"].append(train_loss)
 
         optimizer.zero_grad()
         model.eval()
