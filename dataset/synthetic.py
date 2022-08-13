@@ -22,7 +22,7 @@ class SyntheticDataset(Dataset):
 
             image = read_image(self.synthetic_root + "/renders//" + filename, ImageReadMode.RGB)
             image = image.type(torch.FloatTensor)
-            shape = torch.from_numpy(np.load(self.synthetic_root + "/shapes//" + filename1)[1, :300])
+            shape = torch.from_numpy(np.load(self.synthetic_root + "/shapes//" + filename1)[1, :])
         else:
             filename = f"render_{idx // 8}_{idx % 8}.png"
             filename1 = f"shape_{idx // 8}.npy"
@@ -32,7 +32,7 @@ class SyntheticDataset(Dataset):
                 print(filename)
 
             image = image.type(torch.FloatTensor)
-            shape = torch.from_numpy(np.load(self.synthetic_root + "/shapes//" + filename1)[1, :300])
+            shape = torch.from_numpy(np.load(self.synthetic_root + "/shapes//" + filename1)[1, :])
         if self.transform:
             image = self.transform(image)
         return image, shape

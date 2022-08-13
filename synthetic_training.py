@@ -9,7 +9,12 @@ from torchvision.models import resnet50
 from tqdm import tqdm
 
 from dataset.synthetic import SyntheticDataset
+from flame.config import get_config
+from flame.flame_pytorch import FLAME
 from model.mobilenet import MobilenetV3
+import numpy as np
+import trimesh
+import pyrender
 
 
 def main():
@@ -22,20 +27,26 @@ def main():
     train_ds = SyntheticDataset(flame_root, transform)
     valid_ds = SyntheticDataset(flame_root, transform)
 
-    train_loader = torch.utils.data.DataLoader(train_ds, shuffle=True, batch_size=8, num_workers=4)
-    valid_loader = torch.utils.data.DataLoader(valid_ds, shuffle=True, batch_size=8, num_workers=4)
+    train_loader = torch.utils.data.DataLoader(train_ds, shuffle=True, batch_size=64, num_workers=4)
+    valid_loader = torch.utils.data.DataLoader(valid_ds, shuffle=True, batch_size=64, num_workers=4)
 
-    model = resnet50()
-    model.fc = nn.Sequential(nn.AdaptiveAvgPool2d(1),
-                             nn.Flatten(),
-                             nn.LazyLinear(300),
-                             nn.LazyLinear(300),
-                             nn.LazyLinear(300))
+    model = MobilenetV3(num_classes=560, classifier_activation=nn.Identity)
+
+    # model = resnet50()
+    # model.fc = nn.Sequential(nn.AdaptiveAvgPool2d(1),
+    #                          nn.Flatten(),
+    #                          nn.LazyLinear(300),
+    #                          nn.LazyLinear(300),
+    #                          nn.LazyLinear(300))
+
+    cfg = get_config()
+
+    flame_layer = FLAME(cfg).to(device)
 
     model = model.to(device)
 
     loss_fn = nn.MSELoss().to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-2)
     lr = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=2)
 
     aug = nn.Sequential(augmentation.RandomHorizontalFlip(),
@@ -55,6 +66,11 @@ def main():
     else:
         epoch = 0
         metrics = {"train": [], "val": []}
+
+    exp_params = torch.zeros((64, 100)).to(device)
+    pose_params = torch.zeros((64, 6)).to(device)
+
+    faces = flame_layer.faces
 
     for i in range(10):
         train_loss = 0
@@ -83,9 +99,53 @@ def main():
         pbar = tqdm(valid_loader)
         for batch, data in enumerate(pbar):
             inputs, targets = data[0].to(device), data[1].to(device)
+
             with torch.no_grad():
+                # targets, landmarkst = flame_layer(shape_params=targets, expression_params=exp_params,
+                #                                   pose_params=pose_params)
+                #
+                # outputs, landmarkso = flame_layer(shape_params=model(inputs), expression_params=exp_params,
+                #                                   pose_params=pose_params)
+
                 outputs = model(inputs)
+                
                 loss = loss_fn(outputs, targets)
+
+            # if batch == 0:
+            #     for j in range(8):
+            #         vertices = outputs[i].detach().cpu().numpy().squeeze()
+            #         vertex_colors = np.ones([vertices.shape[0], 4]) * [0.3, 0.3, 0.3, 0.8]
+            #         joints = landmarkso[i].detach().cpu().numpy().squeeze()
+            #
+            #         tri_mesh = trimesh.Trimesh(vertices, faces,
+            #                                    vertex_colors=vertex_colors)
+            #         mesh = pyrender.Mesh.from_trimesh(tri_mesh)
+            #         scene = pyrender.Scene()
+            #         scene.add(mesh)
+            #         sm = trimesh.creation.uv_sphere(radius=0.005)
+            #         sm.visual.vertex_colors = [0.9, 0.1, 0.1, 1.0]
+            #         tfs = np.tile(np.eye(4), (len(joints), 1, 1))
+            #         tfs[:, :3, 3] = joints
+            #         joints_pcl = pyrender.Mesh.from_trimesh(sm, poses=tfs)
+            #         scene.add(joints_pcl)
+            #         pyrender.Viewer(scene, use_raymond_lighting=True)
+            #
+            #         vertices = targets[i].detach().cpu().numpy().squeeze()
+            #         vertex_colors = np.ones([vertices.shape[0], 4]) * [0.3, 0.3, 0.3, 0.8]
+            #         joints = landmarkst[i].detach().cpu().numpy().squeeze()
+            #
+            #         tri_mesh = trimesh.Trimesh(vertices, faces,
+            #                                    vertex_colors=vertex_colors)
+            #         mesh = pyrender.Mesh.from_trimesh(tri_mesh)
+            #         scene = pyrender.Scene()
+            #         scene.add(mesh)
+            #         sm = trimesh.creation.uv_sphere(radius=0.005)
+            #         sm.visual.vertex_colors = [0.9, 0.1, 0.1, 1.0]
+            #         tfs = np.tile(np.eye(4), (len(joints), 1, 1))
+            #         tfs[:, :3, 3] = joints
+            #         joints_pcl = pyrender.Mesh.from_trimesh(sm, poses=tfs)
+            #         scene.add(joints_pcl)
+            #         pyrender.Viewer(scene, use_raymond_lighting=True)
 
             test_loss += loss.detach()
 
