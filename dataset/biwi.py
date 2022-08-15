@@ -9,11 +9,16 @@ from torchvision.transforms.functional import resized_crop
 
 
 class Biwi(Dataset):
-    def __init__(self, root):
+    def __init__(self, root, training=True):
         self.root = root
         self.images = sorted(glob(root + "*/*rgb.png"))
         self.images = [image.replace("\\", "/") for image in self.images]
         self.current_subject = ""
+        self.training = training
+        if not training:
+            self.images = self.images[:len(self.images) // 5]
+        else:
+            self.images = self.images[len(self.images) // 5:]
 
     def __len__(self):
         return len(self.images)
@@ -104,6 +109,6 @@ class Biwi(Dataset):
         img = resized_crop(img, self.top, self.left, self.size, self.size, [256, 256])
 
         vertices = torch.matmul(mat[0:3, :], self.vertices.unsqueeze(-1))
-        vertices = vertices + mat[3, :].unsqueeze(0)
+        vertices = vertices + mat[3, :].unsqueeze(-1)
 
-        return img, vertices
+        return img, torch.flatten(vertices)
