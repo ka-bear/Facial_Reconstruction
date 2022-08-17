@@ -5,6 +5,7 @@ import torchvision.transforms as transforms
 from kornia import augmentation
 from torch import nn
 from torch.utils.data import DataLoader
+from torchvision.models import resnet50
 from tqdm import tqdm
 
 from dataset.biwi import Biwi
@@ -20,17 +21,15 @@ def main():
     train_ds = Biwi(biwi_root, True)
     valid_ds = Biwi(biwi_root, False)
 
-    train_loader = torch.utils.data.DataLoader(train_ds, shuffle=True, batch_size=64, num_workers=4)
-    valid_loader = torch.utils.data.DataLoader(valid_ds, shuffle=True, batch_size=64, num_workers=4)
+    train_loader = torch.utils.data.DataLoader(train_ds, shuffle=True, batch_size=16, num_workers=4)
+    valid_loader = torch.utils.data.DataLoader(valid_ds, shuffle=True, batch_size=16, num_workers=4)
 
     model = MobilenetV3(num_classes=20754, classifier_activation=nn.Identity)
 
     # model = resnet50()
-    # model.fc = nn.Sequential(nn.AdaptiveAvgPool2d(1),
-    #                          nn.Flatten(),
-    #                          nn.LazyLinear(300),
-    #                          nn.LazyLinear(300),
-    #                          nn.LazyLinear(300))
+    # model.fc = nn.Sequential(nn.LazyLinear(4096),
+    #                          nn.LazyLinear(8192),
+    #                          nn.LazyLinear(20754))
 
     model = model.to(device)
 
@@ -38,7 +37,8 @@ def main():
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-2)
     lr = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=2)
 
-    aug = nn.Sequential(augmentation.RandomHorizontalFlip(),
+    aug = nn.Sequential(transform,
+                        augmentation.RandomHorizontalFlip(),
                         augmentation.RandomAffine(degrees=(-20, 20), scale=(0.8, 1.2), translate=(0.1, 0.1), shear=0.15,
                                                   padding_mode="border")).to(device)
 
@@ -56,7 +56,7 @@ def main():
         epoch = 0
         metrics = {"train": [], "val": []}
 
-    for i in range(10):
+    for i in range(30):
         train_loss = 0
         model.train()
 
