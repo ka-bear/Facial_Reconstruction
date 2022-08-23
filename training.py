@@ -1,4 +1,5 @@
 import os
+from functools import partial
 
 import torch
 import torchvision.transforms as transforms
@@ -24,12 +25,12 @@ def main():
     train_loader = torch.utils.data.DataLoader(train_ds, shuffle=True, batch_size=16, num_workers=4)
     valid_loader = torch.utils.data.DataLoader(valid_ds, shuffle=True, batch_size=16, num_workers=4)
 
-    model = MobilenetV3(num_classes=20754, classifier_activation=nn.Identity)
+    # model = MobilenetV3(num_classes=20754, classifier_activation=nn.Identity)
 
-    # model = resnet50()
-    # model.fc = nn.Sequential(nn.LazyLinear(4096),
-    #                          nn.LazyLinear(8192),
-    #                          nn.LazyLinear(20754))
+    model = resnet50()
+    model.fc = nn.Sequential(nn.LazyLinear(4096),
+                             nn.LazyLinear(8192),
+                             nn.LazyLinear(20754))
 
     model = model.to(device)
 
@@ -37,8 +38,7 @@ def main():
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-2)
     lr = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=2)
 
-    aug = nn.Sequential(transform,
-                        augmentation.RandomHorizontalFlip(),
+    aug = nn.Sequential(augmentation.RandomHorizontalFlip(),
                         augmentation.RandomAffine(degrees=(-20, 20), scale=(0.8, 1.2), translate=(0.1, 0.1), shear=0.15,
                                                   padding_mode="border")).to(device)
 
@@ -52,6 +52,7 @@ def main():
         epoch = ckpt["epoch"]
         metrics = ckpt["metrics"]
         print(f"Checkpoint loaded at epoch {epoch}")
+        del ckpt
     else:
         epoch = 0
         metrics = {"train": [], "val": []}
@@ -62,7 +63,7 @@ def main():
 
         pbar = tqdm(train_loader)
         for batch, data in enumerate(pbar):
-            inputs, targets = aug(data[0].requires_grad_().to(device)), data[1].to(device)
+            inputs, targets = aug(transform(data[0].requires_grad_().to(device))), data[1].to(device)
             optimizer.zero_grad()
 
             outputs = model(inputs)
@@ -70,7 +71,7 @@ def main():
             loss.backward()
             optimizer.step()
 
-            train_loss += loss.detach()
+            train_loss += loss.detach().cpu()
 
             pbar.set_description(f"Batch: {batch} Training loss: {train_loss / (batch + 1)}")
 
@@ -82,7 +83,7 @@ def main():
         test_loss = 0
         pbar = tqdm(valid_loader)
         for batch, data in enumerate(pbar):
-            inputs, targets = data[0].to(device), data[1].to(device)
+            inputs, targets = transform(data[0].to(device)), data[1].to(device)
 
             with torch.no_grad():
 
@@ -90,7 +91,7 @@ def main():
 
                 loss = loss_fn(outputs, targets)
 
-            test_loss += loss.detach()
+            test_loss += loss.detach().cpu()
 
             pbar.set_description(f"Valid loss: {test_loss / (batch + 1)}")
         metrics["val"].append(test_loss)
