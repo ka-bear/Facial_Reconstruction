@@ -14,7 +14,7 @@ from model.mobilenet import MobilenetV3
 
 
 def main():
-    biwi_root = "D:\\python_code\\faces_0\\"
+    biwi_root = "dataset\\archive\\faces_0\\"
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
