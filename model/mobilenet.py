@@ -21,7 +21,7 @@ class InvertedResBlock(nn.Module):
         if expansion > 1:
             self.expand = nn.Conv2d(in_channels=in_channels, out_channels=depth(in_channels * expansion),
                                     kernel_size=1, padding='same', bias=False)
-            self.expand_bn = nn.BatchNorm2d(num_features=depth(in_channels * expansion), eps=1e-3, momentum=1e-2)
+            self.expand_bn = nn.BatchNorm2d(num_features=depth(in_channels * expansion), eps=1e-3, momentum=1e-3)
             self.expand_activation = activation()
 
         self.depthwise = nn.Conv2d(in_channels=depth(in_channels * expansion), stride=stride,

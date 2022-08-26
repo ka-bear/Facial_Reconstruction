@@ -22,15 +22,15 @@ def main():
     train_ds = Biwi(biwi_root, True)
     valid_ds = Biwi(biwi_root, False)
 
-    train_loader = torch.utils.data.DataLoader(train_ds, shuffle=True, batch_size=16, num_workers=4)
-    valid_loader = torch.utils.data.DataLoader(valid_ds, shuffle=True, batch_size=16, num_workers=4)
+    train_loader = torch.utils.data.DataLoader(train_ds, shuffle=True, batch_size=64, num_workers=4)
+    valid_loader = torch.utils.data.DataLoader(valid_ds, shuffle=True, batch_size=64, num_workers=4)
 
-    # model = MobilenetV3(num_classes=20754, classifier_activation=nn.Identity)
+    model = MobilenetV3(num_classes=20754, classifier_activation=nn.Identity)
 
-    model = resnet50()
-    model.fc = nn.Sequential(nn.LazyLinear(4096),
-                             nn.LazyLinear(8192),
-                             nn.LazyLinear(20754))
+    # model = resnet50()
+    # model.fc = nn.Sequential(nn.LazyLinear(4096),
+    #                          nn.LazyLinear(8192),
+    #                          nn.LazyLinear(20754))
 
     model = model.to(device)
 
