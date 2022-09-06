@@ -1,4 +1,5 @@
 import os
+from functools import partial
 
 import torch
 import torchvision.transforms as transforms
@@ -8,51 +9,75 @@ from torch.utils.data import DataLoader
 from torchvision.models import resnet50
 from tqdm import tqdm
 
-from dataset.synthetic import SyntheticDataset
-from flame.config import get_config
-from flame.flame_pytorch import FLAME
+from dataset.biwi import Biwi
 from model.mobilenet import MobilenetV3
-import numpy as np
-import trimesh
-import pyrender
 
 
 def main():
-    cfg = get_config()
-    flame_layer = FLAME(cfg)
-    params = torch.tensor(np.load("E:\\pycharmgoesbrr\\Facial_Reconstruction\\data\\synthetic\\shapes\\shape_1.npy"))
+    biwi_root = "D:\\python_code\\faces_0\\"
 
-    shape_params = params[:, :300]
-    # expression_params = params[:, 300:400]
-    # pose_params = params[:, 400:406]
-    # eye_pose = params[:, 406:412]
-    # neck_pose = params[:, 412:415]
-    expression_params = torch.zeros((8,100))
-    pose_params = torch.zeros((8,6))
-    eye_pose = torch.zeros((8, 6))
-    neck_pose = torch.zeros((8,3))
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    faces = flame_layer.faces
+    transform = transforms.Normalize((127.0, 127.0, 127.0), (127.0, 127.0, 127.0))
+    valid_ds = Biwi(biwi_root, False)
 
-    vertcies, landmarks = flame_layer(shape_params, expression_params, pose_params, neck_pose, eye_pose)
+    valid_loader = torch.utils.data.DataLoader(valid_ds, shuffle=True, batch_size=16, num_workers=4)
 
-    for j in range(8):
-        vertices = vertcies[j].detach().cpu().numpy().squeeze()
-        vertex_colors = np.ones([vertices.shape[0], 4]) * [0.3, 0.3, 0.3, 0.8]
-        joints = landmarks[j].detach().cpu().numpy().squeeze()
+    model = MobilenetV3(num_classes=20754, classifier_activation=nn.Identity)
 
-        tri_mesh = trimesh.Trimesh(vertices, faces,
-                                   vertex_colors=vertex_colors)
-        mesh = pyrender.Mesh.from_trimesh(tri_mesh)
-        scene = pyrender.Scene()
-        scene.add(mesh)
-        sm = trimesh.creation.uv_sphere(radius=0.005)
-        sm.visual.vertex_colors = [0.9, 0.1, 0.1, 1.0]
-        tfs = np.tile(np.eye(4), (len(joints), 1, 1))
-        tfs[:, :3, 3] = joints
-        joints_pcl = pyrender.Mesh.from_trimesh(sm, poses=tfs)
-        scene.add(joints_pcl)
-        pyrender.Viewer(scene, use_raymond_lighting=True)
+    # model = resnet50()
+    # model.fc = nn.Sequential(nn.LazyLinear(4096),
+    #                          nn.LazyLinear(8192),
+    #                          nn.LazyLinear(20754))
+
+    model = model.to(device)
+
+    loss_fn = nn.MSELoss().to(device)
+    l1_loss = nn.L1Loss().to(device)
+
+    ckpt_path = "modelbiwi.pt"
+
+    if os.path.exists(ckpt_path):
+        ckpt = torch.load(ckpt_path)
+        model.load_state_dict(ckpt["model"])
+        epoch = ckpt["epoch"]
+        print(f"Checkpoint loaded at epoch {epoch}")
+        del ckpt
+
+    model.eval()
+
+    test_loss = torch.Tensor((0,)).to(device)
+    mean = torch.Tensor((0,)).to(device)
+
+    pbar = tqdm(valid_loader)
+    for batch, data in enumerate(pbar):
+        targets = data[1].to(device)
+        with torch.no_grad():
+            mean += torch.mean(targets).detach()
+
+    mean = mean / len(valid_loader)
+
+    sse = torch.Tensor((0,)).to(device)
+    sst = torch.Tensor((0,)).to(device)
+    mae = torch.Tensor((0,)).to(device)
+
+    pbar = tqdm(valid_loader)
+    for batch, data in enumerate(pbar):
+        inputs, targets = transform(data[0].to(device)), data[1].to(device)
+
+        with torch.no_grad():
+            outputs = model(inputs)
+
+            loss = loss_fn(outputs, targets)
+
+            sse += loss.detach()
+            sst += torch.mean(torch.pow(targets - mean, 2))
+            mae += l1_loss(outputs, targets)
+
+        pbar.set_description(f"Valid loss: {test_loss / (batch + 1)}")
+    print(1 - sse/sst)
+    print(torch.sqrt(sse / len(valid_loader)))
+    print(mae / len(valid_loader))
 
 
 if __name__ == "__main__":
