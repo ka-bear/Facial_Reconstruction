@@ -14,7 +14,7 @@ from model.mobilenet import MobilenetV3
 
 
 def main():
-    biwi_root = "D:\\python_code\\faces_0\\"
+    biwi_root = r"dataset\archive\faces_0\\"
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -35,7 +35,7 @@ def main():
     loss_fn = nn.MSELoss().to(device)
     l1_loss = nn.L1Loss().to(device)
 
-    ckpt_path = "modelbiwi.pt"
+    ckpt_path = "modelbii.pt"
 
     if os.path.exists(ckpt_path):
         ckpt = torch.load(ckpt_path)

@@ -1,5 +1,4 @@
 import os
-from functools import partial
 
 import torch
 import torchvision.transforms as transforms
@@ -14,6 +13,8 @@ from model.mobilenet import MobilenetV3
 
 
 def main():
+    torch.cuda.empty_cache()
+
     biwi_root = "dataset\\archive\\faces_0\\"
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -22,20 +23,21 @@ def main():
     train_ds = Biwi(biwi_root, True)
     valid_ds = Biwi(biwi_root, False)
 
-    train_loader = torch.utils.data.DataLoader(train_ds, shuffle=True, batch_size=64, num_workers=4)
-    valid_loader = torch.utils.data.DataLoader(valid_ds, shuffle=True, batch_size=64, num_workers=4)
+    train_loader = torch.utils.data.DataLoader(train_ds, shuffle=True, batch_size=16, num_workers=4)
+    valid_loader = torch.utils.data.DataLoader(valid_ds, shuffle=True, batch_size=16, num_workers=4)
 
     model = MobilenetV3(num_classes=20754, classifier_activation=nn.Identity)
 
-    # model = resnet50()
-    # model.fc = nn.Sequential(nn.LazyLinear(4096),
-    #                          nn.LazyLinear(8192),
-    #                          nn.LazyLinear(20754))
+    model = resnet50()
+    model.fc = nn.Sequential(nn.Dropout(),
+                             nn.LazyLinear(4096),
+                             nn.LazyLinear(8192),
+                             nn.LazyLinear(20754))
 
     model = model.to(device)
 
     loss_fn = nn.MSELoss().to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-2)
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
     lr = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=2)
 
     aug = nn.Sequential(augmentation.RandomHorizontalFlip(),
@@ -57,7 +59,7 @@ def main():
         epoch = 0
         metrics = {"train": [], "val": []}
 
-    for i in range(30):
+    for i in range(120):
         train_loss = 0
         model.train()
 
