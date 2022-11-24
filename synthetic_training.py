@@ -25,19 +25,18 @@ def main():
 
     transform = transforms.Normalize((127.0, 127.0, 127.0), (127.0, 127.0, 127.0))
     train_ds = SyntheticDataset(flame_root, transform)
-    valid_ds = SyntheticDataset(flame_root, transform)
+    valid_ds = SyntheticDataset(flame_root, transform, test=True)
 
     train_loader = torch.utils.data.DataLoader(train_ds, shuffle=True, batch_size=64, num_workers=4)
     valid_loader = torch.utils.data.DataLoader(valid_ds, shuffle=True, batch_size=64, num_workers=4)
 
-    model = MobilenetV3(num_classes=560, classifier_activation=nn.Identity)
+    model = MobilenetV3(num_classes=15069, classifier_activation=nn.Identity)
 
     # model = resnet50()
-    # model.fc = nn.Sequential(nn.AdaptiveAvgPool2d(1),
-    #                          nn.Flatten(),
-    #                          nn.LazyLinear(300),
-    #                          nn.LazyLinear(300),
-    #                          nn.LazyLinear(300))
+    # model.fc = nn.Sequential(nn.Dropout(),
+    #                          nn.LazyLinear(4096),
+    #                          nn.LazyLinear(8192),
+    #                          nn.LazyLinear(15069))
 
     cfg = get_config()
 
@@ -46,14 +45,14 @@ def main():
     model = model.to(device)
 
     loss_fn = nn.MSELoss().to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-2)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-2)
     lr = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=2)
 
-    aug = nn.Sequential(augmentation.RandomHorizontalFlip(),
-                        augmentation.RandomAffine(degrees=(-20, 20), scale=(0.8, 1.2), translate=(0.1, 0.1), shear=0.15,
-                                                  padding_mode="border")).to(device)
+    # aug = nn.Sequential(augmentation.RandomHorizontalFlip(),
+    #                     augmentation.RandomAffine(degrees=(-20, 20), scale=(0.8, 1.2), translate=(0.1, 0.1), shear=0.15,
+    #                                               padding_mode="border")).to(device)
 
-    ckpt_path = "model1.pt"
+    ckpt_path = "mobilenet_synthetic.pt"
 
     if os.path.exists(ckpt_path):
         ckpt = torch.load(ckpt_path)
@@ -63,14 +62,10 @@ def main():
         epoch = ckpt["epoch"]
         metrics = ckpt["metrics"]
         print(f"Checkpoint loaded at epoch {epoch}")
+        del ckpt
     else:
         epoch = 0
         metrics = {"train": [], "val": []}
-
-    exp_params = torch.zeros((64, 100)).to(device)
-    pose_params = torch.zeros((64, 6)).to(device)
-
-    faces = flame_layer.faces
 
     for i in range(10):
         train_loss = 0
@@ -78,7 +73,10 @@ def main():
 
         pbar = tqdm(train_loader)
         for batch, data in enumerate(pbar):
-            inputs, targets = aug(data[0].requires_grad_().to(device)), data[1].to(device)
+            inputs, targets = data[0].requires_grad_().to(device), data[1].to(device)
+            targets, _ = flame_layer(targets[:, :300], targets[:, 300:400],
+                                     targets[:, 400:406], targets[:, 406:409], targets[:, 409:415])
+            targets = torch.reshape(targets - torch.mean(targets, dim=1, keepdim=True), (-1, 15069))
             optimizer.zero_grad()
 
             outputs = model(inputs)
@@ -99,6 +97,9 @@ def main():
         pbar = tqdm(valid_loader)
         for batch, data in enumerate(pbar):
             inputs, targets = data[0].to(device), data[1].to(device)
+            targets, _ = flame_layer(targets[:, :300], targets[:, 300:400],
+                                     targets[:, 400:406], targets[:, 406:409], targets[:, 409:415])
+            targets = torch.reshape(targets - torch.mean(targets, dim=1, keepdim=True), (-1, 15069))
 
             with torch.no_grad():
                 # targets, landmarkst = flame_layer(shape_params=targets, expression_params=exp_params,

@@ -91,4 +91,6 @@ class Biwi(Dataset):
         img = read_image(image_path).float()
         img = resized_crop(img, top, left, size, size, [256, 256])
 
+        vertices = vertices - torch.mean(vertices, dim=0, keepdim=True)
+
         return img, torch.flatten(vertices)

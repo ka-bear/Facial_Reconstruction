@@ -14,7 +14,7 @@ from model.mobilenet import MobilenetV3
 
 
 def main():
-    biwi_root = r"dataset\archive\faces_0\\"
+    biwi_root = "D:\\python_code\\faces_0\\"
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -23,19 +23,20 @@ def main():
 
     valid_loader = torch.utils.data.DataLoader(valid_ds, shuffle=True, batch_size=16, num_workers=4)
 
-    model = MobilenetV3(num_classes=20754, classifier_activation=nn.Identity)
+    # model = MobilenetV3(num_classes=20754, classifier_activation=nn.Identity)
 
-    # model = resnet50()
-    # model.fc = nn.Sequential(nn.LazyLinear(4096),
-    #                          nn.LazyLinear(8192),
-    #                          nn.LazyLinear(20754))
+    model = resnet50()
+    model.fc = nn.Sequential(nn.Dropout(),
+                             nn.LazyLinear(4096),
+                             nn.LazyLinear(8192),
+                             nn.LazyLinear(20754))
 
     model = model.to(device)
 
     loss_fn = nn.MSELoss().to(device)
     l1_loss = nn.L1Loss().to(device)
 
-    ckpt_path = "modelbii.pt"
+    ckpt_path = "modelbiwi.pt"
 
     if os.path.exists(ckpt_path):
         ckpt = torch.load(ckpt_path)
@@ -47,13 +48,13 @@ def main():
     model.eval()
 
     test_loss = torch.Tensor((0,)).to(device)
-    mean = torch.Tensor((0,)).to(device)
+    mean = torch.zeros(size=(20754,)).to(device)
 
     pbar = tqdm(valid_loader)
     for batch, data in enumerate(pbar):
         targets = data[1].to(device)
         with torch.no_grad():
-            mean += torch.mean(targets).detach()
+            mean += torch.mean(targets, 0).detach()
 
     mean = mean / len(valid_loader)
 
@@ -69,6 +70,8 @@ def main():
             outputs = model(inputs)
 
             loss = loss_fn(outputs, targets)
+
+            print(loss)
 
             sse += loss.detach()
             sst += torch.mean(torch.pow(targets - mean, 2))
