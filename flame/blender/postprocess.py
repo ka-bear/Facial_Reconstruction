@@ -25,6 +25,7 @@ def remove_transparency(im, background, bg_colour=(255, 255, 255)):
 
 
 def main():
+    # post process the rendered images.
     renders = glob.glob("D:/python_code/FacialReconstruction/out/renders/*.png")[26075 + 12072:]
     bgs = random.sample(glob.glob(file_path_type), len(renders))
 

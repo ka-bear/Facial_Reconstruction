@@ -5,6 +5,9 @@ import torch
 
 
 class SyntheticDataset(Dataset):
+    """
+    Dataloader for the rendered synthetic dataset
+    """
     def __init__(self, flame_root, transform=None, test=False):
         self.transform = transform
         self.synthetic_root = flame_root

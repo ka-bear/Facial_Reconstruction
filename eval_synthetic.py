@@ -26,16 +26,16 @@ def main():
     train_ds = SyntheticDataset(flame_root, transform)
     valid_ds = SyntheticDataset(flame_root, transform, test=True)
 
-    train_loader = torch.utils.data.DataLoader(train_ds, shuffle=True, batch_size=64, num_workers=4)
-    valid_loader = torch.utils.data.DataLoader(valid_ds, shuffle=True, batch_size=64, num_workers=4)
+    train_loader = torch.utils.data.DataLoader(train_ds, shuffle=True, batch_size=16, num_workers=4)
+    valid_loader = torch.utils.data.DataLoader(valid_ds, shuffle=True, batch_size=16, num_workers=4)
 
-    model = MobilenetV3(num_classes=15069, classifier_activation=nn.Identity)
+    # model = MobilenetV3(num_classes=15069, classifier_activation=nn.Identity)
 
-    # model = resnet50()
-    # model.fc = nn.Sequential(nn.Dropout(),
-    #                          nn.LazyLinear(4096),
-    #                          nn.LazyLinear(8192),
-    #                          nn.LazyLinear(15069))
+    model = resnet50()
+    model.fc = nn.Sequential(nn.Dropout(),
+                             nn.LazyLinear(4096),
+                             nn.LazyLinear(8192),
+                             nn.LazyLinear(15069))
 
     cfg = get_config()
 
@@ -51,7 +51,7 @@ def main():
     #                     augmentation.RandomAffine(degrees=(-20, 20), scale=(0.8, 1.2), translate=(0.1, 0.1), shear=0.15,
     #                                               padding_mode="border")).to(device)
 
-    ckpt_path = "mobilenet_synthetic.pt"
+    ckpt_path = "trained_models/resnet_synthetic.pt"
 
     if os.path.exists(ckpt_path):
         ckpt = torch.load(ckpt_path)
@@ -101,7 +101,9 @@ def main():
     metrics["val"].append(test_loss)
 
     print("RMSE: ", torch.sqrt(test_loss / len(valid_loader)))
-    print("R2: ", 1 - torch.mean(test_loss / (ss - mean * mean)))
+    print((mean / len(valid_loader)) ** 2, (ss / len(valid_loader) / 64), test_loss / len(valid_loader))
+    print(torch.mean((ss / len(valid_loader) / 64 - (mean / len(valid_loader)) ** 2)))
+    print("R2: ", 1 - torch.mean(test_loss / len(valid_loader) / (ss / len(valid_loader) / 64 - (mean / len(valid_loader)) ** 2)))
 
 
 if __name__ == "__main__":

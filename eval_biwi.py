@@ -36,7 +36,7 @@ def main():
     loss_fn = nn.MSELoss().to(device)
     l1_loss = nn.L1Loss().to(device)
 
-    ckpt_path = "modelbiwi.pt"
+    ckpt_path = "trained_models/resnet_biwi.pt"
 
     if os.path.exists(ckpt_path):
         ckpt = torch.load(ckpt_path)
@@ -71,11 +71,9 @@ def main():
 
             loss = loss_fn(outputs, targets)
 
-            print(loss)
-
             sse += loss.detach()
             sst += torch.mean(torch.pow(targets - mean, 2))
-            mae += l1_loss(outputs, targets)
+            mae += l1_loss(outputs, targets).detach()
 
         pbar.set_description(f"Valid loss: {test_loss / (batch + 1)}")
     print(1 - sse/sst)

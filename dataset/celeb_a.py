@@ -5,6 +5,9 @@ import torch
 
 
 class CelebADataset(Dataset):
+    """
+    Dataloader for the CelebA dataset
+    """
     def __init__(self, celeba_root, transform=None, train_eval_test=0):
         partition_df = pd.read_csv(celeba_root + "list_eval_partition.csv")
         attr_df = pd.read_csv(celeba_root + "list_attr_celeba.csv")

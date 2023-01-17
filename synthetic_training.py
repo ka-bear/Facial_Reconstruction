@@ -52,7 +52,7 @@ def main():
     #                     augmentation.RandomAffine(degrees=(-20, 20), scale=(0.8, 1.2), translate=(0.1, 0.1), shear=0.15,
     #                                               padding_mode="border")).to(device)
 
-    ckpt_path = "mobilenet_synthetic.pt"
+    ckpt_path = "trained_models/mobilenet_synthetic.pt"
 
     if os.path.exists(ckpt_path):
         ckpt = torch.load(ckpt_path)

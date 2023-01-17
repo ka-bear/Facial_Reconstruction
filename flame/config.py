@@ -1,5 +1,6 @@
 import argparse
-import os
+
+# some of these options are not relevant but I'm too scared to change them
 
 parser = argparse.ArgumentParser(description='FLAME model')
 
@@ -87,7 +88,7 @@ parser.add_argument(
 parser.add_argument(
     '--batch_size',
     type=int,
-    default=64,
+    default=16,
     help='Training batch size.'
 )
 

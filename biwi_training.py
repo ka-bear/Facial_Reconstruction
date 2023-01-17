@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader
 from torchvision.models import resnet50
 from tqdm import tqdm
 
-from dataset.biwi import Biwi
+from dataset.biwi_direct_regression import Biwi
 from model.mobilenet import MobilenetV3
 
 
@@ -23,16 +23,15 @@ def main():
     train_ds = Biwi(biwi_root, True)
     valid_ds = Biwi(biwi_root, False)
 
-    train_loader = torch.utils.data.DataLoader(train_ds, shuffle=True, batch_size=64, num_workers=4)
-    valid_loader = torch.utils.data.DataLoader(valid_ds, shuffle=True, batch_size=64, num_workers=4)
+    train_loader = torch.utils.data.DataLoader(train_ds, shuffle=True, batch_size=16, num_workers=4)
+    valid_loader = torch.utils.data.DataLoader(valid_ds, shuffle=True, batch_size=16, num_workers=4)
 
-    model = MobilenetV3(num_classes=20754, classifier_activation=nn.Identity)
+    # model = MobilenetV3(num_classes=20754, classifier_activation=nn.Identity)
     #
-    # model = resnet50()
-    # model.fc = nn.Sequential(nn.Dropout(),
-    #                          nn.LazyLinear(4096),
-    #                          nn.LazyLinear(8192),
-    #                          nn.LazyLinear(20754))
+    model = resnet50()
+    model.fc = nn.Sequential(nn.Dropout(),
+                             nn.LazyLinear(512),
+                             nn.LazyLinear(6))
 
     model = model.to(device)
 
@@ -44,7 +43,7 @@ def main():
                         augmentation.RandomAffine(degrees=(-20, 20), scale=(0.8, 1.2), translate=(0.1, 0.1), shear=0.15,
                                                   padding_mode="border")).to(device)
 
-    ckpt_path = "mobilenet_biwi.pt"
+    ckpt_path = "direct_reco_models/mobilenet_biwi.pt"
 
     if os.path.exists(ckpt_path):
         ckpt = torch.load(ckpt_path)
