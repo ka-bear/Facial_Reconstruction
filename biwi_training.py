@@ -23,11 +23,11 @@ def main():
     train_ds = Biwi(biwi_root, True)
     valid_ds = Biwi(biwi_root, False)
 
-    train_loader = torch.utils.data.DataLoader(train_ds, shuffle=True, batch_size=16, num_workers=4)
-    valid_loader = torch.utils.data.DataLoader(valid_ds, shuffle=True, batch_size=16, num_workers=4)
+    train_loader = torch.utils.data.DataLoader(train_ds, shuffle=True, batch_size=16, num_workers=8)
+    valid_loader = torch.utils.data.DataLoader(valid_ds, shuffle=True, batch_size=16, num_workers=8)
 
-    # model = MobilenetV3(num_classes=20754, classifier_activation=nn.Identity)
-    #
+    # model = MobilenetV3(num_classes=6, classifier_activation=nn.Identity)
+
     model = resnet50()
     model.fc = nn.Sequential(nn.Dropout(),
                              nn.LazyLinear(512),
@@ -39,11 +39,11 @@ def main():
     optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4)
     lr = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=2)
 
-    aug = nn.Sequential(augmentation.RandomHorizontalFlip(),
-                        augmentation.RandomAffine(degrees=(-20, 20), scale=(0.8, 1.2), translate=(0.1, 0.1), shear=0.15,
-                                                  padding_mode="border")).to(device)
+    # aug = nn.Sequential(augmentation.RandomHorizontalFlip(),
+    #                     augmentation.RandomAffine(degrees=(-20, 20), scale=(0.8, 1.2), translate=(0.1, 0.1), shear=0.15,
+    #                                               padding_mode="border")).to(device)
 
-    ckpt_path = "direct_reco_models/mobilenet_biwi.pt"
+    ckpt_path = "models/resnet_biwi_direct_regression.pt"
 
     if os.path.exists(ckpt_path):
         ckpt = torch.load(ckpt_path)

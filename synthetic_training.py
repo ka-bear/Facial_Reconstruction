@@ -30,7 +30,7 @@ def main():
     train_loader = torch.utils.data.DataLoader(train_ds, shuffle=True, batch_size=64, num_workers=4)
     valid_loader = torch.utils.data.DataLoader(valid_ds, shuffle=True, batch_size=64, num_workers=4)
 
-    model = MobilenetV3(num_classes=15069, classifier_activation=nn.Identity)
+    model = MobilenetV3(num_classes=6, classifier_activation=nn.Identity)
 
     # model = resnet50()
     # model.fc = nn.Sequential(nn.Dropout(),
@@ -52,7 +52,7 @@ def main():
     #                     augmentation.RandomAffine(degrees=(-20, 20), scale=(0.8, 1.2), translate=(0.1, 0.1), shear=0.15,
     #                                               padding_mode="border")).to(device)
 
-    ckpt_path = "trained_models/mobilenet_synthetic.pt"
+    ckpt_path = "trained_models/mobilenet_synthetic_direct_regression.pt"
 
     if os.path.exists(ckpt_path):
         ckpt = torch.load(ckpt_path)
@@ -67,7 +67,7 @@ def main():
         epoch = 0
         metrics = {"train": [], "val": []}
 
-    for i in range(10):
+    for i in range(15):
         train_loss = 0
         model.train()
 
@@ -76,7 +76,8 @@ def main():
             inputs, targets = data[0].requires_grad_().to(device), data[1].to(device)
             targets, _ = flame_layer(targets[:, :300], targets[:, 300:400],
                                      targets[:, 400:406], targets[:, 406:409], targets[:, 409:415])
-            targets = torch.reshape(targets - torch.mean(targets, dim=1, keepdim=True), (-1, 15069))
+            targets = torch.reshape((targets - torch.mean(targets, dim=1, keepdim=True))[:, [3472, 3496], :],
+                                    (-1, 6))
             optimizer.zero_grad()
 
             outputs = model(inputs)
@@ -99,7 +100,8 @@ def main():
             inputs, targets = data[0].to(device), data[1].to(device)
             targets, _ = flame_layer(targets[:, :300], targets[:, 300:400],
                                      targets[:, 400:406], targets[:, 406:409], targets[:, 409:415])
-            targets = torch.reshape(targets - torch.mean(targets, dim=1, keepdim=True), (-1, 15069))
+            targets = torch.reshape((targets - torch.mean(targets, dim=1, keepdim=True))[:, [3472, 3496], :],
+                                    (-1, 6))
 
             with torch.no_grad():
                 # targets, landmarkst = flame_layer(shape_params=targets, expression_params=exp_params,

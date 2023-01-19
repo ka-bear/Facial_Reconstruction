@@ -70,11 +70,15 @@ class InvertedResBlock(nn.Module):
 
 
 def MobilenetV3(arch='large', in_channels=3, activation=nn.Hardswish, kernel=5, se_ratio=0.25, include_top=True,
-                dropout=0.2, num_classes=1000, classifier_activation=nn.Softmax):
+                dropout=0.2, num_classes=1000, classifier_activation=nn.Softmax, finetune=False):
 
     layers = [nn.Conv2d(in_channels=in_channels, out_channels=16,
                         kernel_size=3, stride=2, padding=1, bias=False),
               nn.BatchNorm2d(num_features=16, eps=1e-3, momentum=1e-3), activation()]
+
+    if finetune:
+        layers[0].requires_grad_(False)
+        layers[1].requires_grad_(False)
 
     if arch == 'large':
         stack_cfg = [
@@ -115,6 +119,8 @@ def MobilenetV3(arch='large', in_channels=3, activation=nn.Hardswish, kernel=5, 
 
     for i in stack_cfg:
         layers.append(InvertedResBlock(*i))
+        if finetune:
+            layers[-1].requires_grad_(False)
 
     if include_top:
         layers.append(nn.Conv2d(in_channels=out_ch, out_channels=out_ch * 6, kernel_size=1, padding='same',
